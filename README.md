@@ -50,17 +50,83 @@ Outputs:
   "final_recommendation": "SELECT | REVIEW | REJECT"
 }
 
-📊 4. Google Sheets Integration
-
-#### The workflow reads job role details from a Google Sheet:
+## 📊 4. Google Sheets Integration
+### The workflow reads job role details from a Google Sheet:
 Job ID
 Required Skills
 Preferred Skills
 Min/Max Experience
 Job Description
 
-#### Another sheet stores:
+### Another sheet stores:
 Candidate info
 Score
 AI recommendation
 HR notes
+
+## 📧 5. Automated Emails
+Based on AI decision:
+- SELECT → Warm acceptance email
+- REVIEW → HR manual review email
+- REJECT → Polite rejection email
+Emails are fully generated and sent automatically.
+
+🔄 6. End-to-End Automation in n8n
+
+## The n8n workflow includes:
+- Webhook trigger
+- Resume upload → FastAPI
+- Google Sheets lookup
+- scoring (JavaScript node)
+- Decision engine
+- Email automation
+- Candidate storage
+Everything happens automatically once the candidate submits the form.
+
+🏗️ Project Structure
+```bash
+/resume-parser-backend
+│── main.py              # FastAPI server
+│── parser.py            # Resume extraction & LLM enhancement
+│── requirements.txt
+│── .env                 # GROQ_API_KEY etc.
+
+/frontend
+│── index.html           # Tailwind form (Netlify deployed)
+
+/n8n-workflow.json       # Exported workflow (optional)
+```
+💡 Tech Stack
+- FastAPI
+- n8n (Automation engine)
+- Groq LLM
+- Cloudflare Tunnel(for making the API live)
+- Google Sheets API
+- TailwindCSS
+- Netlify (frontend hosting)
+
+🚀 How to Run Locally
+
+1. Clone the repo:
+```
+git clone https://github.com/YOUR-USERNAME/automated-hiring-system.git
+```
+2. Install dependencies:
+```
+pip install -r requirements.txt
+```
+3. Add environment variables:
+```
+GROQ_API_KEY=your_key_here
+```
+4. Run FastAPI:
+```
+uvicorn main:app --reload --port 8000
+```
+5. Expose API publicly:
+```
+cloudflared tunnel --url http://127.0.0.1:8000
+```
+6. Import workflow into n8n
+
+7. Deploy HTML form on Netlify
