@@ -26,6 +26,7 @@ FastAPI backend includes:
 Run the API:
 ```bash
 uvicorn main:app --reload --port 8000
+```
 🧠 3. AI Scoring Engine (Custom JavaScript Logic)
 
 Instead of unpredictable LLM scoring, the workflow uses deterministic scoring rules, including:
