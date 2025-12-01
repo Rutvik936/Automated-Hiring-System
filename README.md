@@ -104,7 +104,7 @@ Everything happens automatically once the candidate submits the form.
 - Google Sheets API
 - TailwindCSS
 - Netlify (frontend hosting)
-
+---
 🚀 How to Run Locally
 
 1. Clone the repo:
