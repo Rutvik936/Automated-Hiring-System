@@ -40,7 +40,7 @@ Instead of unpredictable LLM scoring, the workflow uses deterministic scoring ru
 - Experience validation
 
 Outputs:
-
+```
 {
   "score": 0-100,
   "skill_match": [],
@@ -49,7 +49,7 @@ Outputs:
   "underqualified": false,
   "final_recommendation": "SELECT | REVIEW | REJECT"
 }
-
+```
 ## 📊 4. Google Sheets Integration
 ### The workflow reads job role details from a Google Sheet:
 Job ID
