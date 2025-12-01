@@ -1,0 +1,275 @@
+{
+  "name": "ATS-Automation",
+  "nodes": [
+    {
+      "id": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "name": "Webhook",
+      "typeVersion": 2.1,
+      "position": [850, -100],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "upload-resume",
+        "options": {
+          "binaryPropertyName": "resume"
+        }
+      }
+    },
+
+    {
+      "id": "Parser",
+      "type": "n8n-nodes-base.httpRequest",
+      "name": "Parser",
+      "typeVersion": 4.3,
+      "position": [1050, -100],
+      "parameters": {
+        "method": "POST",
+        "url": "YOUR_FASTAPI_URL_HERE",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            { "name": "candidate_name", "value": "={{ $json.body.candidate_name }}" },
+            { "name": "candidate_email", "value": "={{ $json.body.candidate_email }}" },
+            { "name": "job_id", "value": "={{ $json.body.job_id }}" },
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "resume0"
+            }
+          ]
+        }
+      }
+    },
+
+    {
+      "id": "JobDescription",
+      "type": "n8n-nodes-base.googleSheets",
+      "name": "Job Description",
+      "typeVersion": 4.7,
+      "position": [1280, -190],
+      "parameters": {
+        "operation": "get",
+        "documentId": "GOOGLE_SHEETS_ID_HERE",
+        "sheetName": "Sheet1",
+        "filtersUI": {
+          "values": [
+            { "lookupColumn": "Job ID", "lookupValue": "={{ $json.job_id }}" }
+          ]
+        }
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "REPLACE_GOOGLE_SHEETS_CREDENTIAL_ID",
+          "name": "REPLACE_GOOGLE_SHEETS_CREDENTIAL_NAME"
+        }
+      }
+    },
+
+    {
+      "id": "CandidateInfo",
+      "type": "n8n-nodes-base.set",
+      "name": "Candidate Details",
+      "typeVersion": 3.4,
+      "position": [1350, -20],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            { "name": "candidate_email", "value": "={{ $json.candidate_email }}", "type": "string" },
+            { "name": "candidate_name", "value": "={{ $json.candidate_name }}", "type": "string" },
+            { "name": "phone", "value": "={{ $json.parsed.phone }}", "type": "string" },
+            { "name": "candidate_skills", "value": "={{ $json.parsed.explicit_skills }}", "type": "array" },
+            { "name": "years_experience", "value": "={{ $json.parsed.years_experience }}", "type": "string" },
+            { "name": "raw_text", "value": "={{ $json.parsed.raw_text }}", "type": "string" }
+          ]
+        }
+      }
+    },
+
+    {
+      "id": "JobDetailsSet",
+      "type": "n8n-nodes-base.set",
+      "name": "Job Details",
+      "typeVersion": 3.4,
+      "position": [1470, -190],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            { "name": "Job ID", "value": "={{ $json['Job ID'] }}", "type": "string" },
+            { "name": "Min Experience (Years)", "value": "={{ $json['Min Experience (Years)'] }}", "type": "number" },
+            { "name": "Max Experience (Years)", "value": "={{ $json['Max Experience (Years)'] }}", "type": "number" },
+            { "name": "Required Skills", "value": "={{ $json['Required Skills'] }}", "type": "string" },
+            { "name": "Preferred Skills", "value": "={{ $json['Preferred Skills'] }}", "type": "string" },
+            { "name": "Description", "value": "={{ $json['Description'] }}", "type": "string" },
+            { "name": "Job Title", "value": "={{ $json['Job Title'] }}", "type": "string" }
+          ]
+        }
+      }
+    },
+
+    {
+      "id": "Merge",
+      "type": "n8n-nodes-base.merge",
+      "name": "Merge",
+      "typeVersion": 3.2,
+      "position": [1680, -100]
+    },
+
+    {
+      "id": "ScoreGenerator",
+      "type": "n8n-nodes-base.code",
+      "name": "Score Generator",
+      "typeVersion": 2,
+      "position": [1870, -100],
+      "parameters": {
+        "jsCode": "/* Your scoring JavaScript goes here (sanitized) */"
+      }
+    },
+
+    {
+      "id": "FinalDataMap",
+      "type": "n8n-nodes-base.set",
+      "name": "Final Candidate Details",
+      "typeVersion": 3.4,
+      "position": [2060, -100],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            { "name": "candidate_name", "value": "={{ $json.candidate.name }}", "type": "string" },
+            { "name": "candidate_email", "value": "={{ $json.candidate.email }}", "type": "string" },
+            { "name": "candidate_phone", "value": "={{ $json.candidate.phone }}", "type": "string" },
+            { "name": "score", "value": "={{ $json.score_details.score }}", "type": "number" },
+            { "name": "decision", "value": "={{ $json.final_recommendation }}", "type": "string" },
+            { "name": "job_title", "value": "={{ $json.job_role.job_title }}", "type": "string" },
+            { "name": "job_id", "value": "={{ $json.candidate.job_id }}", "type": "string" }
+          ]
+        }
+      }
+    },
+
+    {
+      "id": "Switch",
+      "type": "n8n-nodes-base.switch",
+      "name": "Decision Router",
+      "typeVersion": 3.3,
+      "position": [2280, -110],
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "outputKey": "Selected",
+              "conditions": {
+                "conditions": [
+                  { "leftValue": "={{ $json.decision }}", "rightValue": "SELECT", "operator": { "type": "string", "operation": "equals" } }
+                ]
+              }
+            },
+            {
+              "outputKey": "Review",
+              "conditions": {
+                "conditions": [
+                  { "leftValue": "={{ $json.decision }}", "rightValue": "REVIEW", "operator": { "type": "string", "operation": "equals" } }
+                ]
+              }
+            },
+            {
+              "outputKey": "Rejected",
+              "conditions": {
+                "conditions": [
+                  { "leftValue": "={{ $json.decision }}", "rightValue": "REJECT", "operator": { "type": "string", "operation": "equals" } }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    },
+
+    {
+      "id": "EmailSelected",
+      "type": "n8n-nodes-base.gmail",
+      "name": "Email to Selected",
+      "typeVersion": 2.1,
+      "position": [2880, -130],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "REPLACE_GMAIL_CREDENTIAL_ID",
+          "name": "REPLACE_GMAIL_CREDENTIAL_NAME"
+        }
+      },
+      "parameters": {
+        "sendTo": "={{ $json.candidate_email }}",
+        "subject": "Congratulations! You Are Selected!",
+        "message": "SELECT_EMAIL_TEMPLATE_HERE"
+      }
+    },
+
+    {
+      "id": "EmailRejected",
+      "type": "n8n-nodes-base.gmail",
+      "name": "Email to Rejected",
+      "typeVersion": 2.1,
+      "position": [2860, 80],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "REPLACE_GMAIL_CREDENTIAL_ID",
+          "name": "REPLACE_GMAIL_CREDENTIAL_NAME"
+        }
+      },
+      "parameters": {
+        "sendTo": "={{ $json.candidate_email }}",
+        "subject": "Update on Your Application",
+        "message": "REJECT_EMAIL_TEMPLATE_HERE"
+      }
+    },
+
+    {
+      "id": "AddCandidateToSheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "name": "Add Candidate to Sheet",
+      "typeVersion": 4.7,
+      "position": [2480, -280],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "REPLACE_GOOGLE_SHEETS_CREDENTIAL_ID",
+          "name": "REPLACE_GOOGLE_SHEETS_CREDENTIAL_NAME"
+        }
+      },
+      "parameters": {
+        "operation": "append",
+        "documentId": "GOOGLE_SHEETS_ID_HERE",
+        "sheetName": "Sheet2",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Candidate_name": "={{ $json.candidate_name }}",
+            "Candidate_email": "={{ $json.candidate_email }}",
+            "Candidate_phone": "={{ $json.candidate_phone }}",
+            "status": "={{ $json.decision }}",
+            "score": "={{ $json.score }}",
+            "Job Title": "={{ $json.job_title }}",
+            "Job_Id": "={{ $json.job_id }}"
+          }
+        }
+      }
+    }
+  ],
+
+  "connections": {
+    "Webhook": { "main": [[{ "node": "Parser", "type": "main" }]] },
+    "Parser": { "main": [[{ "node": "Job Description" }, { "node": "Candidate Details" }]] },
+    "Job Description": { "main": [[{ "node": "Job Details" }]] },
+    "Job Details": { "main": [[{ "node": "Merge" }]] },
+    "Candidate Details": { "main": [[{ "node": "Merge" }]] },
+    "Merge": { "main": [[{ "node": "Score Generator" }]] },
+    "Score Generator": { "main": [[{ "node": "Final Candidate Details" }]] },
+    "Final Candidate Details": { "main": [[{ "node": "Decision Router" }]] },
+    "Decision Router": {
+      "main": [
+        [{ "node": "Email to Selected" }, { "node": "Add Candidate to Sheet" }],
+        [{ "node": "Add Candidate to Sheet" }],
+        [{ "node": "Email to Rejected" }]
+      ]
+    }
+  }
+}
